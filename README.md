@@ -12,6 +12,7 @@
 - Support for any Git hosting platform (ex. GitHub, GitLab, your own)
 - Support for multiple Git profiles (ex. work/personal repositories)
 - Integration with LLM prompts
+- All configurations in a single `yhub.toml` file
 - ...and many more :-)
 
 ## Documentation
