@@ -11,16 +11,20 @@
 
 repositories_dir = "repos"
 
+profiles = ["personal", "work"]
+
 # Hello
 
-[[repositories.hello]]
+[[groups.hello]]
+profile = "personal"
 repository = "willpinha/world"
 name = "world"
 alias = "WRD"
 
 # Foo
 
-[[repositories.foo]]
+[[groups.foo]]
+profile = "work"
 repository = "willpinha/bar"
 name = "bar"
-alisa = "BR"
+alias = "BR"
