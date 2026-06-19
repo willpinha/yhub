@@ -8,7 +8,7 @@
 
 ## Features
 
-- Support for any Git hosting platform (ex. GitHub, GitLab, your own)
+- Support for different Git hosting platforms (GitHub, GitLab, BitBucket)
 - Support for multiple Git profiles (ex. work/personal repositories)
 - Support for HTTPS and SSH clone protocols
 - Integration with LLM prompts
