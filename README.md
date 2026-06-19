@@ -8,7 +8,7 @@
 
 ## Features
 
-- CRUD operations for your Git repositories
+- Clone/unclone operations for your existing Git repositories
 - Support for any Git hosting platform (ex. GitHub, GitLab, your own)
 - Support for multiple Git profiles (ex. work/personal repositories)
 - Integration with LLM prompts
