@@ -11,6 +11,7 @@
 - Support for different Git hosting platforms (GitHub, GitLab, BitBucket)
 - Support for multiple Git profiles (ex. work/personal repositories)
 - Support for HTTPS and SSH clone protocols
+- It can be used by an entire team or just by you
 - Integration with LLM prompts
 - All configurations in a single `yhub.toml` file
 - ...and many more :-)
