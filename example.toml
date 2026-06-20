@@ -10,21 +10,28 @@
 # yhub unclone repo WRD BR
 
 repositories_dir = "repos"
+default_platform = "github"
+default_protocol = "ssh"
 
 profiles = ["personal", "work"]
+
+[platforms.company]
+host = "git.company.com"
 
 # Hello
 
 [[groups.hello]]
-profile = "personal"
+profile    = "personal"
 repository = "willpinha/world"
-name = "world"
-alias = "WRD"
+name       = "world"
+alias      = "WRD"
+# platform = "gitlab"
+# protocol = "https"
 
 # Foo
 
 [[groups.foo]]
-profile = "work"
+profile    = "work"
 repository = "willpinha/bar"
-name = "bar"
-alias = "BR"
+name       = "bar"
+alias      = "BR"

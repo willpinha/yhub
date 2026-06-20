@@ -1,0 +1,8 @@
+[profiles.personal]
+name = "willpinha"
+email    = "personal@example.com"
+ssh_key  = "~/.ssh/id_personal"
+
+[profiles.work]
+name = "will-work"
+email    = "will@company.com"
