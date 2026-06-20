@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -289,4 +290,248 @@ func TestValidateDeterminism(t *testing.T) {
 	posZzz := strings.Index(msg, `"zzz"`)
 	assert.True(t, posAaa < posMmm && posMmm < posZzz,
 		"groups should appear in sorted order (aaa < mmm < zzz) in error message")
+}
+
+func TestValidateProtocols(t *testing.T) {
+	tests := []struct {
+		name       string
+		cfg        *Config
+		wantErr    bool
+		sentinels  []error
+		substrings []string
+	}{
+		{
+			name:    "empty protocol is allowed",
+			cfg:     &Config{},
+			wantErr: false,
+		},
+		{
+			name:    "https is valid",
+			cfg:     &Config{DefaultProtocol: "https"},
+			wantErr: false,
+		},
+		{
+			name:    "ssh is valid",
+			cfg:     &Config{DefaultProtocol: "ssh"},
+			wantErr: false,
+		},
+		{
+			name:       "invalid default_protocol",
+			cfg:        &Config{DefaultProtocol: "ftp"},
+			wantErr:    true,
+			sentinels:  []error{ErrInvalidProtocol},
+			substrings: []string{"default_protocol", "ftp", `"https" or "ssh"`},
+		},
+		{
+			name: "invalid repo protocol",
+			cfg: &Config{
+				Groups: map[string][]Repository{
+					"g": {
+						{Repository: "a/b", Name: "n", Alias: "A", Protocol: "git"},
+					},
+				},
+			},
+			wantErr:    true,
+			sentinels:  []error{ErrInvalidProtocol},
+			substrings: []string{`"g"`, `"A"`, "git", `"https" or "ssh"`},
+		},
+		{
+			name: "empty repo protocol is allowed",
+			cfg: &Config{
+				Groups: map[string][]Repository{
+					"g": {
+						{Repository: "a/b", Name: "n", Alias: "A", Protocol: ""},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errs := validateProtocols(tt.cfg)
+			err := errors.Join(errs...)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			for _, sentinel := range tt.sentinels {
+				assert.ErrorIs(t, err, sentinel)
+			}
+			msg := err.Error()
+			for _, sub := range tt.substrings {
+				assert.True(t, strings.Contains(msg, sub),
+					"expected error message to contain %q, got: %s", sub, msg)
+			}
+		})
+	}
+}
+
+func TestValidatePlatforms(t *testing.T) {
+	tests := []struct {
+		name       string
+		cfg        *Config
+		wantErr    bool
+		sentinels  []error
+		substrings []string
+	}{
+		{
+			name:    "empty default_platform is allowed",
+			cfg:     &Config{},
+			wantErr: false,
+		},
+		{
+			name:    "builtin github is known",
+			cfg:     &Config{DefaultPlatform: "github"},
+			wantErr: false,
+		},
+		{
+			name:    "builtin gitlab is known",
+			cfg:     &Config{DefaultPlatform: "gitlab"},
+			wantErr: false,
+		},
+		{
+			name:    "builtin bitbucket is known",
+			cfg:     &Config{DefaultPlatform: "bitbucket"},
+			wantErr: false,
+		},
+		{
+			name: "custom declared platform is known",
+			cfg: &Config{
+				DefaultPlatform: "myforge",
+				Platforms:       map[string]Platform{"myforge": {Host: "myforge.example.com"}},
+			},
+			wantErr: false,
+		},
+		{
+			name:       "unknown default_platform",
+			cfg:        &Config{DefaultPlatform: "unknown"},
+			wantErr:    true,
+			sentinels:  []error{ErrUnknownPlatform},
+			substrings: []string{"default_platform", "unknown", "not a known platform"},
+		},
+		{
+			name: "unknown repo platform",
+			cfg: &Config{
+				Groups: map[string][]Repository{
+					"g": {
+						{Repository: "a/b", Name: "n", Alias: "A", Platform: "nope"},
+					},
+				},
+			},
+			wantErr:    true,
+			sentinels:  []error{ErrUnknownPlatform},
+			substrings: []string{`"g"`, `"A"`, "nope", "not a known platform"},
+		},
+		{
+			name: "platform with empty host",
+			cfg: &Config{
+				Platforms: map[string]Platform{"myforge": {Host: ""}},
+			},
+			wantErr:    true,
+			sentinels:  []error{ErrEmptyPlatformHost},
+			substrings: []string{"myforge", "empty host"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errs := validatePlatforms(tt.cfg)
+			err := errors.Join(errs...)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			for _, sentinel := range tt.sentinels {
+				assert.ErrorIs(t, err, sentinel)
+			}
+			msg := err.Error()
+			for _, sub := range tt.substrings {
+				assert.True(t, strings.Contains(msg, sub),
+					"expected error message to contain %q, got: %s", sub, msg)
+			}
+		})
+	}
+}
+
+func TestValidateProfiles(t *testing.T) {
+	tests := []struct {
+		name       string
+		cfg        *Config
+		local      *LocalConfig
+		wantErr    bool
+		sentinels  []error
+		substrings []string
+	}{
+		{
+			name:    "both empty returns no error",
+			cfg:     &Config{},
+			local:   &LocalConfig{},
+			wantErr: false,
+		},
+		{
+			name:    "exact match returns no error",
+			cfg:     &Config{Profiles: []string{"personal", "work"}},
+			local:   &LocalConfig{Profiles: map[string]Profile{"personal": {}, "work": {}}},
+			wantErr: false,
+		},
+		{
+			name:       "declared profile missing in local",
+			cfg:        &Config{Profiles: []string{"personal"}},
+			local:      &LocalConfig{Profiles: map[string]Profile{}},
+			wantErr:    true,
+			sentinels:  []error{ErrMissingLocalProfile},
+			substrings: []string{"personal", "missing in yhub.local.toml"},
+		},
+		{
+			name:       "local profile not declared in main",
+			cfg:        &Config{},
+			local:      &LocalConfig{Profiles: map[string]Profile{"personal": {}}},
+			wantErr:    true,
+			sentinels:  []error{ErrUndeclaredLocalProfile},
+			substrings: []string{"personal", "not declared in yhub.toml"},
+		},
+		{
+			name:       "nil local with declared profiles reports missing",
+			cfg:        &Config{Profiles: []string{"personal"}},
+			local:      nil,
+			wantErr:    true,
+			sentinels:  []error{ErrMissingLocalProfile},
+			substrings: []string{"personal"},
+		},
+		{
+			name:    "nil local with no profiles is ok",
+			cfg:     &Config{},
+			local:   nil,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateProfiles(tt.cfg, tt.local)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			for _, sentinel := range tt.sentinels {
+				assert.ErrorIs(t, err, sentinel)
+			}
+			msg := err.Error()
+			for _, sub := range tt.substrings {
+				assert.True(t, strings.Contains(msg, sub),
+					"expected error message to contain %q, got: %s", sub, msg)
+			}
+		})
+	}
 }

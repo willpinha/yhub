@@ -20,9 +20,14 @@ func newValidateCommand(fs afero.Fs) *cli.Command {
 				return handleLoadError(cmd, err)
 			}
 
-			verr := cfg.Validate()
-			if verr != nil {
-				printViolations(cmd, verr)
+			local, localErr := config.LoadLocal(fs, config.LocalFileName)
+			if localErr != nil && errors.Is(localErr, config.ErrInvalidTOML) {
+				return handleLoadError(cmd, localErr)
+			}
+
+			violations := collectViolations(cfg, local, localErr)
+			if len(violations) > 0 {
+				printViolationList(cmd, violations)
 				return cli.Exit("", 1)
 			}
 
@@ -32,29 +37,54 @@ func newValidateCommand(fs afero.Fs) *cli.Command {
 	}
 }
 
+func collectViolations(cfg *config.Config, local *config.LocalConfig, localErr error) []error {
+	var violations []error
+
+	violations = append(violations, unwrapJoined(cfg.Validate())...)
+
+	if localErr != nil && errors.Is(localErr, config.ErrNotFound) {
+		if len(cfg.Profiles) > 0 {
+			violations = append(violations, fmt.Errorf(
+				"yhub.local.toml not found, but %d profile(s) are declared in yhub.toml",
+				len(cfg.Profiles),
+			))
+		}
+	} else {
+		violations = append(violations, unwrapJoined(config.ValidateProfiles(cfg, local))...)
+	}
+
+	return violations
+}
+
 func handleLoadError(cmd *cli.Command, err error) error {
 	w := cmd.Root().ErrWriter
 	switch {
 	case errors.Is(err, config.ErrNotFound):
 		fmt.Fprintln(w, "yhub.toml not found in the current directory")
 	case errors.Is(err, config.ErrInvalidTOML):
-		fmt.Fprintf(w, "invalid yhub.toml: %v\n", err)
+		fmt.Fprintf(w, "invalid config: %v\n", err)
 	default:
 		fmt.Fprintln(w, err)
 	}
 	return cli.Exit("", 1)
 }
 
-func printViolations(cmd *cli.Command, err error) {
+func printViolationList(cmd *cli.Command, violations []error) {
 	w := cmd.Root().ErrWriter
-	violations := unwrapJoined(err)
 	fmt.Fprintf(w, "yhub.toml has %d validation error(s):\n", len(violations))
 	for _, v := range violations {
 		fmt.Fprintf(w, "  - %s\n", v)
 	}
 }
 
+func printViolations(cmd *cli.Command, err error) {
+	printViolationList(cmd, unwrapJoined(err))
+}
+
 func unwrapJoined(err error) []error {
+	if err == nil {
+		return nil
+	}
 	type joined interface{ Unwrap() []error }
 	if j, ok := err.(joined); ok {
 		return j.Unwrap()
