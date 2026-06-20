@@ -77,10 +77,6 @@ func printViolationList(cmd *cli.Command, violations []error) {
 	}
 }
 
-func printViolations(cmd *cli.Command, err error) {
-	printViolationList(cmd, unwrapJoined(err))
-}
-
 func unwrapJoined(err error) []error {
 	if err == nil {
 		return nil
