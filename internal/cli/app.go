@@ -29,14 +29,3 @@ func newListCommand(fs afero.Fs) *cli.Command {
 		},
 	}
 }
-
-func newValidateCommand(fs afero.Fs) *cli.Command {
-	return &cli.Command{
-		Name:  "validate",
-		Usage: "Validate the yhub.toml configuration file",
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			fmt.Fprintln(cmd.Root().Writer, "validate: not implemented yet")
-			return nil
-		},
-	}
-}

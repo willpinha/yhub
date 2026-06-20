@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/afero"
 )
 
+const FileName = "yhub.toml"
+
 var ErrNotFound = errors.New("config file not found")
 
 var ErrInvalidTOML = errors.New("invalid TOML in config file")
