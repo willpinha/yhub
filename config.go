@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net/mail"
 	"path/filepath"
 
 	"github.com/spf13/afero"
@@ -69,6 +72,7 @@ func (rt RepositoriesTree) walk(baseDir string, fn func(dir string, repo Reposit
 }
 
 type Config struct {
+	fs              afero.Fs
 	Platforms       Platforms        `json:"platforms"`
 	DefaultPlatform string           `json:"default_platform"`
 	Profiles        Profiles         `json:"profiles"`
@@ -76,7 +80,95 @@ type Config struct {
 	Repositories    RepositoriesTree `json:"repositories"`
 }
 
+type configValidateFunc func() error
+
 func (c *Config) validate() error {
+	validators := []configValidateFunc{
+		c.validatePlatforms,
+		c.validateProfiles,
+		c.validateRepositories,
+	}
+
+	for _, v := range validators {
+		if err := v(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Config) validatePlatforms() error {
+	defaultPlatformFound := false
+
+	for name, p := range c.Platforms {
+		if name == "" {
+			return errors.New("platforms cannot have empty names")
+		}
+
+		if p.Host == "" {
+			return fmt.Errorf("platform '%s' has an empty host", name)
+		}
+
+		if name == c.DefaultPlatform {
+			defaultPlatformFound = true
+		}
+	}
+
+	if !defaultPlatformFound {
+		return fmt.Errorf("default platform '%s' does not exist. Valid platforms are: %v", c.DefaultPlatform)
+	}
+
+	return nil
+}
+
+func (c *Config) validateProfiles() error {
+	if len(c.Profiles) == 0 {
+		return errors.New("profiles cannot be empty")
+	}
+
+	defaultProfileFound := false
+
+	isValidEmail := func(s string) bool {
+		addr, err := mail.ParseAddress(s)
+
+		return err == nil && addr.Address == s
+	}
+
+	for name, p := range c.Profiles {
+		if name == "" {
+			return errors.New("profiles cannot have empty names")
+		}
+
+		switch {
+		case p.SSHKey == "":
+			return fmt.Errorf("profile '%s' has an empty SSH key")
+		case p.UserName == "":
+			return fmt.Errorf("profile '%s' has an empty user name")
+		case p.UserEmail == "":
+			return fmt.Errorf("profile '%s' has an empty user email")
+		case !isValidEmail(p.UserEmail):
+			return fmt.Errorf("profile '%s' has an invalid email address: %s", name, p.UserEmail)
+		}
+	}
+
+	if !defaultProfileFound {
+		return fmt.Errorf("default profile '%s' does not exist. Valid profiles are: %v", c.DefaultProfile)
+	}
+
+	return nil
+}
+
+func (c *Config) validateRepositories() error {
+	/*
+		if repo.Platform == "" && c.DefaultPlatform == "" {
+			return fmt.Errorf("repository '%s' has no platform, but no default_platform has been specified", repo.Name)
+		}
+
+		if repo.Profile == "" && c.DefaultProfile == "" {
+			return fmt.Errorf("repository '%s' has no profile, but no default_profile has been specified", repo.Name)
+		}
+	*/
 	return nil
 }
 
@@ -87,10 +179,16 @@ func NewConfig(fs afero.Fs) (*Config, error) {
 	}
 	defer f.Close()
 
-	config := &Config{}
+	config := &Config{fs: fs}
 
 	if err = json.NewDecoder(f).Decode(config); err != nil {
 		return nil, err
+	}
+
+	for name, p := range DefaultPlatforms {
+		if _, ok := config.Platforms[name]; !ok {
+			config.Platforms[name] = p
+		}
 	}
 
 	if err = config.validate(); err != nil {
