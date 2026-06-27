@@ -1,17 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"path/filepath"
 
 	"github.com/spf13/afero"
 )
 
-const configPath = "yhub.json"
+const (
+	repositoriesDir = "repositories"
+	configPath      = "yhub.json"
+)
 
 var DefaultPlatforms = Platforms{
 	"github":    Platform{Host: "github.com"},
 	"gitlab":    Platform{Host: "gitlab.com"},
-	"bitbucket": Platform{Host: "bitbucket.com"},
+	"bitbucket": Platform{Host: "bitbucket.org"},
 }
 
 type Platform struct {
@@ -28,9 +33,47 @@ type Profile struct {
 
 type Profiles map[string]Profile
 
+type Repository struct{}
+
+type RepositoriesTree struct {
+	Repositories []Repository
+	SubDirs      map[string]RepositoriesTree
+}
+
+func (rt RepositoriesTree) UnmarshalJSON(data []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+
+	tok, err := dec.Token()
+	if err != nil {
+		return err
+	}
+
+	if tok == json.Delim('[') {
+		return json.Unmarshal(data, &rt.Repositories)
+	}
+
+	return json.Unmarshal(data, &rt.SubDirs)
+}
+
+func (rt RepositoriesTree) Walk(fn func(dir string, repo Repository)) {
+	rt.walk(repositoriesDir, fn)
+}
+
+func (rt RepositoriesTree) walk(baseDir string, fn func(dir string, repo Repository)) {
+	for _, r := range rt.Repositories {
+		fn(baseDir, r)
+	}
+	for name, sub := range rt.SubDirs {
+		sub.walk(filepath.Join(baseDir, name), fn)
+	}
+}
+
 type Config struct {
-	DefaultProfile string   `json:"default_profile"`
-	Profiles       Profiles `json:"profiles"`
+	Platforms       Platforms        `json:"platforms"`
+	DefaultPlatform string           `json:"default_platform"`
+	Profiles        Profiles         `json:"profiles"`
+	DefaultProfile  string           `json:"default_profile"`
+	Repositories    RepositoriesTree `json:"repositories"`
 }
 
 func (c *Config) validate() error {
