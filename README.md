@@ -1,6 +1,6 @@
 <div align="center">
 
-# [yHub](https://willpinha.github.io/yhub)
+# [yhub](https://willpinha.github.io/yhub)
 
 Manage all your Git repositories through a single, centralized repository
 
