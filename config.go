@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/mail"
 	"path/filepath"
+	"sort"
 
 	"github.com/spf13/afero"
 )
@@ -36,14 +37,24 @@ type Profile struct {
 
 type Profiles map[string]Profile
 
-type Repository struct{}
+type Repository struct {
+	Owner    string `json:"owner"`
+	Name     string `json:"name"`
+	Alias    string `json:"alias"`
+	Platform string `json:"platform"`
+	Profile  string `json:"profile"`
+}
+
+func (r Repository) FullName() string {
+	return fmt.Sprintf("%s/%s", r.Owner, r.Name)
+}
 
 type RepositoriesTree struct {
 	Repositories []Repository
 	SubDirs      map[string]RepositoriesTree
 }
 
-func (rt RepositoriesTree) UnmarshalJSON(data []byte) error {
+func (rt *RepositoriesTree) UnmarshalJSON(data []byte) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 
 	tok, err := dec.Token()
@@ -58,17 +69,30 @@ func (rt RepositoriesTree) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &rt.SubDirs)
 }
 
-func (rt RepositoriesTree) Walk(fn func(dir string, repo Repository)) {
-	rt.walk(repositoriesDir, fn)
+func (rt RepositoriesTree) Walk(fn func(dir string, repo Repository) error) error {
+	return rt.walk(repositoriesDir, fn)
 }
 
-func (rt RepositoriesTree) walk(baseDir string, fn func(dir string, repo Repository)) {
+func (rt RepositoriesTree) walk(baseDir string, fn func(dir string, repo Repository) error) error {
 	for _, r := range rt.Repositories {
-		fn(baseDir, r)
+		if err := fn(baseDir, r); err != nil {
+			return err
+		}
 	}
-	for name, sub := range rt.SubDirs {
-		sub.walk(filepath.Join(baseDir, name), fn)
+
+	subDirs := make([]string, 0, len(rt.SubDirs))
+	for name := range rt.SubDirs {
+		subDirs = append(subDirs, name)
 	}
+	sort.Strings(subDirs)
+
+	for _, sd := range subDirs {
+		if err := rt.SubDirs[sd].walk(filepath.Join(baseDir, sd), fn); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type Config struct {
@@ -114,7 +138,9 @@ func (c *Config) validatePlatforms() error {
 			defaultPlatformFound = true
 		}
 	}
-
+	if len(c.Profiles) == 0 {
+		return errors.New("profiles cannot be empty")
+	}
 	if !defaultPlatformFound {
 		return fmt.Errorf("default platform '%s' does not exist. Valid platforms are: %v", c.DefaultPlatform)
 	}
@@ -160,15 +186,34 @@ func (c *Config) validateProfiles() error {
 }
 
 func (c *Config) validateRepositories() error {
-	/*
-		if repo.Platform == "" && c.DefaultPlatform == "" {
-			return fmt.Errorf("repository '%s' has no platform, but no default_platform has been specified", repo.Name)
+	aliases := Set[string]{}
+	fullnames := Set[string]{}
+
+	if err := c.Repositories.Walk(func(dir string, repo Repository) error {
+		fullname := repo.FullName()
+
+		switch {
+		case repo.Owner == "":
+		case repo.Name == "":
+		case repo.Alias == "":
+		case repo.Platform == "" && c.DefaultPlatform == "":
+			return fmt.Errorf("repository '%s' has no platform, and no default_platform has been specified", fullname)
+		case repo.Profile == "" && c.DefaultProfile == "":
+			return fmt.Errorf("repository '%s' has no profile, and no default_profile has been specified", fullname)
+		case aliases.Has(repo.Alias):
+			return fmt.Errorf("repository alias '%s' is defined more than once", repo.Alias)
+		case fullnames.Has(fullname):
+			return fmt.Errorf("repository '%s' is defined more than once", fullname)
 		}
 
-		if repo.Profile == "" && c.DefaultProfile == "" {
-			return fmt.Errorf("repository '%s' has no profile, but no default_profile has been specified", repo.Name)
-		}
-	*/
+		aliases.Add(repo.Alias)
+		fullnames.Add(fullname)
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -185,9 +230,9 @@ func NewConfig(fs afero.Fs) (*Config, error) {
 		return nil, err
 	}
 
-	for name, p := range DefaultPlatforms {
+	for name, dp := range DefaultPlatforms {
 		if _, ok := config.Platforms[name]; !ok {
-			config.Platforms[name] = p
+			config.Platforms[name] = dp
 		}
 	}
 
