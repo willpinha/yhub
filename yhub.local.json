@@ -1,0 +1,14 @@
+{
+	"profiles": {
+		"personal": {
+			"user.name": "Willian Pinheiro",
+			"user.email": "willpinhagmail.com",
+			"ssh.key": "~/.ssh/id_rsa"
+		},
+		"work": {
+			"user.name": "Willian Pinheiro",
+			"user.email": "willpinha@company.com",
+			"ssh.key": "~/.ssh/id_rsa_work"
+		}
+	}
+}

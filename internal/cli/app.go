@@ -14,6 +14,7 @@ func NewApp(fs afero.Fs, g git.Git) *cli.Command {
 			newListCommand(fs),
 			newValidateCommand(fs),
 			newCloneCommand(fs, g),
+			newUncloneCommand(fs, g),
 		},
 	}
 }

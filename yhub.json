@@ -1,0 +1,37 @@
+{
+	"repositories_dir": "repos",
+	"profiles": ["personal", "work"],
+	"default_profile": "personal",
+	"default_platform": "github",
+	"custom_platforms": [
+		{
+			"name": "my-own-platform",
+			"url": "https://my-own-platform.com"
+		}
+	],
+	"repositories": {
+		"dynamic-routing": [
+			{
+				"profile": "work",
+				"platform": "github",
+				"repository": "willpinha/active-task-pool",
+				"name": "active-task-pool",
+				"alias": "ATP"
+			},
+			{
+				"platform": "github",
+				"repository": "willpinha/plan-assignment",
+				"name": "plan-assignment",
+				"alias": "PA"
+			}
+		],
+		"static-routing": [
+			{
+				"platform": "my-own-platform",
+				"repository": "willpinha/my-own-repo",
+				"name": "my-own-repo",
+				"alias": "MOR"
+			}
+		]
+	}
+}
