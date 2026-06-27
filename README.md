@@ -2,18 +2,16 @@
 
 # [yHub](https://willpinha.github.io/yhub)
 
-🗃️ Manage all your Git repositories through a single, centralized repository
+Manage all your Git repositories through a single, centralized repository
 
 </div>
 
 ## Features
 
-- Support for different Git hosting platforms (GitHub, GitLab, BitBucket)
+- Support for any Git hosting platform (ex. GitHub, GitLab, BitBucket)
 - Support for multiple Git profiles (ex. work/personal repositories)
-- Support for HTTPS and SSH clone protocols
-- It can be used by an entire team or just by you
+- Support for the SSH protocol
 - Integration with LLM prompts
-- All configurations in a single `yhub.toml` file
 - ...and many more :-)
 
 ## Documentation
