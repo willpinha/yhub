@@ -9,15 +9,3 @@
 Manage all your Git repositories through a single, centralized repository
 
 </div>
-
-## Documentation
-
-See the [documentation](https://willpinha.github.io/yhub)
-
-## Contributing
-
-See the [contributing guide](CONTRIBUTING.md)
-
-## License
-
-This project is under the [MIT license](LICENSE)
