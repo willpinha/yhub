@@ -10,14 +10,6 @@ Manage all your Git repositories through a single, centralized repository
 
 </div>
 
-## Features
-
-- Support for any Git hosting platform (ex. GitHub, GitLab, BitBucket)
-- Support for multiple Git profiles (ex. work/personal repositories)
-- Support for the SSH protocol
-- Integration with LLM prompts
-- ...and many more :-)
-
 ## Documentation
 
 See the [documentation](https://willpinha.github.io/yhub)
