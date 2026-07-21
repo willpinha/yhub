@@ -14,6 +14,7 @@ func MainCommand(fs afero.Fs) *cli.Command {
 			InCommand(fs),
 			ListCommand(fs),
 			SearchCommand(fs),
+			UncloneCommand(fs),
 		},
 	}
 }
