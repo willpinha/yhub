@@ -78,6 +78,15 @@ func writeConfig(t *testing.T, config map[string]any) afero.Fs {
 	return fs
 }
 
+func writeLocalConfig(t *testing.T, fs afero.Fs, local map[string]any) {
+	t.Helper()
+
+	data, err := json.Marshal(local)
+	require.NoError(t, err)
+
+	require.NoError(t, afero.WriteFile(fs, localConfigPath, data, 0o644))
+}
+
 func TestNewConfig(t *testing.T) {
 	config, err := NewConfig(writeConfig(t, baseConfig()))
 	require.NoError(t, err)
@@ -122,6 +131,158 @@ func TestNewConfigKeepsUserDefinedDefaultPlatform(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "github.enterprise.com", loaded.Platforms["github"].Host)
+}
+
+func TestNewConfigLocalDeepMerge(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	writeLocalConfig(t, fs, map[string]any{
+		"default_profile": "work",
+		"profiles": map[string]any{
+			"personal": map[string]any{"ssh_key": "/other/key"},
+		},
+	})
+
+	config, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	assert.Equal(t, "work", config.DefaultProfile)
+	assert.Equal(t, "/other/key", config.Profiles["personal"].SSHKey)
+	assert.Equal(t, "Jane Doe", config.Profiles["personal"].UserName)
+	assert.Equal(t, "jane.doe@example.com", config.Profiles["personal"].UserEmail)
+	assert.Equal(t, "~/.ssh/id_rsa_work", config.Profiles["work"].SSHKey)
+}
+
+func TestNewConfigLocalReplacesRepositoryArrays(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	writeLocalConfig(t, fs, map[string]any{
+		"repositories": map[string]any{
+			"work/dynamic-routing": []any{
+				map[string]any{
+					"repository": "company/other",
+					"name":       "other",
+					"platform":   "company",
+					"profile":    "work",
+				},
+			},
+		},
+	})
+
+	config, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	work := config.Repositories["work/dynamic-routing"]
+	require.Len(t, work, 1)
+	assert.Equal(t, "company/other", work[0].Repository)
+	assert.Len(t, config.Repositories["personal/static-routing"], 1)
+}
+
+func TestNewConfigLocalRemovesWithNull(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	writeLocalConfig(t, fs, map[string]any{
+		"repositories": map[string]any{"personal/static-routing": nil},
+	})
+
+	config, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	assert.NotContains(t, config.Repositories, "personal/static-routing")
+	assert.Contains(t, config.Repositories, "work/dynamic-routing")
+}
+
+func TestNewConfigLocalOverridesBuiltInPlatformHost(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	writeLocalConfig(t, fs, map[string]any{
+		"platforms": map[string]any{"github": map[string]any{"host": "github.enterprise.com"}},
+	})
+
+	config, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	assert.Equal(t, "github.enterprise.com", config.Platforms["github"].Host)
+}
+
+func TestNewConfigLocalNullRestoresBuiltInPlatform(t *testing.T) {
+	config := baseConfig()
+	config["platforms"].(map[string]any)["github"] = map[string]any{"host": "github.enterprise.com"}
+
+	fs := writeConfig(t, config)
+	writeLocalConfig(t, fs, map[string]any{
+		"platforms": map[string]any{"github": nil},
+	})
+
+	loaded, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	assert.Equal(t, "github.com", loaded.Platforms["github"].Host)
+}
+
+func TestNewConfigLocalCompletesBase(t *testing.T) {
+	config := baseConfig()
+	profiles := config["profiles"]
+	delete(config, "profiles")
+
+	fs := writeConfig(t, config)
+	writeLocalConfig(t, fs, map[string]any{"profiles": profiles})
+
+	loaded, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	assert.Equal(t, "~/.ssh/id_rsa", loaded.Profiles["personal"].SSHKey)
+	assert.Equal(t, "~/.ssh/id_rsa_work", loaded.Profiles["work"].SSHKey)
+}
+
+func TestNewConfigLocalEmptyObjectIsNoOp(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	writeLocalConfig(t, fs, map[string]any{})
+
+	config, err := NewConfig(fs)
+	require.NoError(t, err)
+
+	assert.Equal(t, "git.company.com", config.Platforms["company"].Host)
+	assert.Len(t, config.Repositories, 2)
+}
+
+func TestNewConfigLocalInvalidJSON(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	require.NoError(t, afero.WriteFile(fs, localConfigPath, []byte("{invalid"), 0o644))
+
+	_, err := NewConfig(fs)
+	assert.ErrorContains(t, err, localConfigPath)
+}
+
+func TestNewConfigInvalidJSONWithLocalPresent(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	require.NoError(t, afero.WriteFile(fs, configPath, []byte("{invalid"), 0o644))
+	writeLocalConfig(t, fs, map[string]any{})
+
+	_, err := NewConfig(fs)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, configPath)
+	assert.NotContains(t, err.Error(), localConfigPath)
+}
+
+func TestNewConfigLocalNotAnObject(t *testing.T) {
+	for _, doc := range []string{`[1, 2]`, `"text"`, `null`, `3`} {
+		t.Run(doc, func(t *testing.T) {
+			fs := writeConfig(t, baseConfig())
+			require.NoError(t, afero.WriteFile(fs, localConfigPath, []byte(doc), 0o644))
+
+			_, err := NewConfig(fs)
+			assert.ErrorContains(t, err, localConfigPath)
+			assert.ErrorContains(t, err, "must be a JSON object")
+		})
+	}
+}
+
+func TestNewConfigLocalValidationErrorMentionsLocalFile(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	writeLocalConfig(t, fs, map[string]any{
+		"profiles": map[string]any{"work": nil},
+	})
+
+	_, err := NewConfig(fs)
+	assert.ErrorContains(t, err, "references unknown profile 'work'")
+	assert.ErrorContains(t, err, localConfigPath)
 }
 
 func TestNewConfigValidationErrors(t *testing.T) {

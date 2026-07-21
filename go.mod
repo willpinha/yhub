@@ -3,6 +3,7 @@ module github.com/willpinha/yhub
 go 1.23.0
 
 require (
+	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/lmittmann/tint v1.1.3
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1

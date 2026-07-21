@@ -5,16 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"log/slog"
 	"maps"
 	"net/mail"
 	"path"
 	"slices"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/spf13/afero"
 )
 
-const configPath = "yhub.json"
+const (
+	configPath      = "yhub.json"
+	localConfigPath = "yhub.local.json"
+)
 
 var DefaultPlatforms = Platforms{
 	"github":    Platform{Host: "github.com"},
@@ -244,16 +249,63 @@ func isRepositoryPath(repository string) bool {
 	return len(segments) >= 2 && !slices.Contains(segments, "")
 }
 
-func newConfig(fs afero.Fs) (*Config, error) {
-	f, err := fs.Open(configPath)
-	if err != nil {
-		return nil, err
+// Checked before merging so parse errors are attributed to the right file and
+// a non-object document cannot replace the whole config (RFC 7386 semantics)
+func ensureJSONObject(data []byte) error {
+	var doc any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return err
 	}
-	defer f.Close()
 
+	if _, ok := doc.(map[string]any); !ok {
+		return errors.New("must be a JSON object")
+	}
+
+	return nil
+}
+
+func readConfigDocument(fs afero.Fs) (data []byte, source string, err error) {
+	base, err := afero.ReadFile(fs, configPath)
+	if err != nil {
+		return nil, configPath, err
+	}
+
+	hasLocal, err := afero.Exists(fs, localConfigPath)
+	if err != nil {
+		return nil, localConfigPath, err
+	}
+
+	if !hasLocal {
+		return base, configPath, nil
+	}
+
+	local, err := afero.ReadFile(fs, localConfigPath)
+	if err != nil {
+		return nil, localConfigPath, err
+	}
+
+	if err := ensureJSONObject(base); err != nil {
+		return nil, configPath, err
+	}
+
+	if err := ensureJSONObject(local); err != nil {
+		return nil, localConfigPath, err
+	}
+
+	slog.Debug("applying local configuration overrides", "path", localConfigPath)
+
+	merged, err := jsonpatch.MergePatch(base, local)
+	if err != nil {
+		return nil, localConfigPath, err
+	}
+
+	return merged, fmt.Sprintf("%s (with %s applied)", configPath, localConfigPath), nil
+}
+
+func newConfig(fs afero.Fs, data []byte) (*Config, error) {
 	config := &Config{fs: fs}
 
-	if err = json.NewDecoder(f).Decode(config); err != nil {
+	if err := json.Unmarshal(data, config); err != nil {
 		return nil, err
 	}
 
@@ -267,7 +319,7 @@ func newConfig(fs afero.Fs) (*Config, error) {
 		}
 	}
 
-	if err = config.validate(); err != nil {
+	if err := config.validate(); err != nil {
 		return nil, err
 	}
 
@@ -275,9 +327,14 @@ func newConfig(fs afero.Fs) (*Config, error) {
 }
 
 func NewConfig(fs afero.Fs) (*Config, error) {
-	config, err := newConfig(fs)
+	data, source, err := readConfigDocument(fs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load %s: %w", configPath, err)
+		return nil, fmt.Errorf("failed to load %s: %w", source, err)
+	}
+
+	config, err := newConfig(fs, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load %s: %w", source, err)
 	}
 
 	return config, nil
