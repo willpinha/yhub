@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"time"
 
 	"github.com/lmittmann/tint"
+	"github.com/spf13/afero"
 )
 
 func main() {
@@ -21,5 +23,5 @@ func run() error {
 		TimeFormat: time.Kitchen,
 	})))
 
-	return nil
+	return MainCommand(afero.NewOsFs()).Run(context.Background(), os.Args)
 }

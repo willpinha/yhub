@@ -1,8 +1,11 @@
 package main
 
-import "github.com/urfave/cli/v3"
+import (
+	"github.com/spf13/afero"
+	"github.com/urfave/cli/v3"
+)
 
-func InCommand() *cli.Command {
+func InCommand(fs afero.Fs) *cli.Command {
 	return &cli.Command{
 		Name:  "in",
 		Usage: "",
