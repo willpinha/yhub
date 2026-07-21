@@ -244,7 +244,7 @@ func isRepositoryPath(repository string) bool {
 	return len(segments) >= 2 && !slices.Contains(segments, "")
 }
 
-func NewConfig(fs afero.Fs) (*Config, error) {
+func newConfig(fs afero.Fs) (*Config, error) {
 	f, err := fs.Open(configPath)
 	if err != nil {
 		return nil, err
@@ -269,6 +269,15 @@ func NewConfig(fs afero.Fs) (*Config, error) {
 
 	if err = config.validate(); err != nil {
 		return nil, err
+	}
+
+	return config, nil
+}
+
+func NewConfig(fs afero.Fs) (*Config, error) {
+	config, err := newConfig(fs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load %s: %w", configPath, err)
 	}
 
 	return config, nil
