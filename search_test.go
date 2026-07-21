@@ -160,6 +160,22 @@ func TestSearchResolvesDefaultsAndPaths(t *testing.T) {
 	assert.Equal(t, "work/dynamic-routing/active-task-pool", atp.Path)
 }
 
+func TestFindRepository(t *testing.T) {
+	config := searchConfig(t)
+
+	byName, err := config.FindRepository("task-pool")
+	require.NoError(t, err)
+	assert.Equal(t, "company/task-pool", byName.Repository)
+	assert.Equal(t, "work/dynamic-routing/task-pool", byName.Path)
+
+	byAlias, err := config.FindRepository("ATP")
+	require.NoError(t, err)
+	assert.Equal(t, "company/active-task-pool", byAlias.Repository)
+
+	_, err = config.FindRepository("unknown")
+	assert.ErrorContains(t, err, "no repository found with name or alias 'unknown'")
+}
+
 func TestSearchWithoutMatchesReturnsEmptySlice(t *testing.T) {
 	results := searchConfig(t).Search("nothing relevant")
 

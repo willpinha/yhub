@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"path"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -28,6 +30,16 @@ func (c *Config) Search(text string) []SearchResult {
 	}
 
 	return results
+}
+
+func (c *Config) FindRepository(identifier string) (SearchResult, error) {
+	for dir, repo := range c.Repositories.All() {
+		if repo.Name == identifier || slices.Contains(repo.Aliases, identifier) {
+			return c.newSearchResult(dir, repo), nil
+		}
+	}
+
+	return SearchResult{}, fmt.Errorf("no repository found with name or alias '%s'", identifier)
 }
 
 func (c *Config) newSearchResult(dir string, repo Repository) SearchResult {
