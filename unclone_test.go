@@ -96,3 +96,24 @@ func TestUnsavedWorkNonGitDirectory(t *testing.T) {
 	_, err := unsavedWork(context.Background(), fs, t.TempDir())
 	assert.ErrorContains(t, err, "not a git repository")
 }
+
+func TestInsideDir(t *testing.T) {
+	tests := []struct {
+		configDir string
+		dir       string
+		want      bool
+	}{
+		{"work/dynamic-routing", "work", true},
+		{"work/dynamic-routing", "work/dynamic-routing", true},
+		{"work/dynamic-routing/nested", "work/dynamic-routing", true},
+		{"workshop", "work", false},
+		{"work", "work/dynamic-routing", false},
+		{"personal/static-routing", "work", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.configDir+" in "+tt.dir, func(t *testing.T) {
+			assert.Equal(t, tt.want, insideDir(tt.configDir, tt.dir))
+		})
+	}
+}

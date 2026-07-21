@@ -18,6 +18,10 @@ func UncloneCommand(fs afero.Fs) *cli.Command {
 				Name:  "all",
 				Usage: "Remove all cloned repositories",
 			},
+			&cli.StringFlag{
+				Name:  "dir",
+				Usage: "Remove all cloned repositories inside a configured directory",
+			},
 			&cli.BoolFlag{
 				Name:  "force",
 				Usage: "Remove repositories even if they have unsaved work",
@@ -25,11 +29,16 @@ func UncloneCommand(fs afero.Fs) *cli.Command {
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			all := cmd.Bool("all")
+			dir := cmd.String("dir")
 
 			switch {
+			case all && dir != "":
+				return errors.New("--all cannot be combined with --dir")
 			case all && cmd.Args().Len() != 0:
 				return errors.New("--all cannot be combined with repository arguments")
-			case !all && cmd.Args().Len() == 0:
+			case dir != "" && cmd.Args().Len() != 0:
+				return errors.New("--dir cannot be combined with repository arguments")
+			case !all && dir == "" && cmd.Args().Len() == 0:
 				return errors.New("expected at least one repository name or alias")
 			}
 
@@ -38,8 +47,11 @@ func UncloneCommand(fs afero.Fs) *cli.Command {
 				return err
 			}
 
-			if all {
+			switch {
+			case all:
 				return config.UncloneAll(ctx, cmd.Bool("force"))
+			case dir != "":
+				return config.UncloneDir(ctx, dir, cmd.Bool("force"))
 			}
 
 			return config.Unclone(ctx, cmd.Args().Slice(), cmd.Bool("force"))

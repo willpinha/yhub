@@ -50,10 +50,48 @@ func (c *Config) Unclone(ctx context.Context, identifiers []string, force bool) 
 }
 
 func (c *Config) UncloneAll(ctx context.Context, force bool) error {
-	anyCloned := false
-	failed := false
+	anyCloned, failed := c.uncloneMatching(ctx, func(string) bool { return true }, force)
 
+	if !anyCloned && !failed {
+		slog.Warn("no repositories are cloned")
+	}
+
+	return uncloneError(failed)
+}
+
+func (c *Config) UncloneDir(ctx context.Context, dir string, force bool) error {
+	dir = path.Clean(dir)
+
+	matched := false
+	for configDir := range c.Repositories {
+		if insideDir(configDir, dir) {
+			matched = true
+			break
+		}
+	}
+
+	if !matched {
+		slog.Warn("no configured directory matches", "directory", dir)
+		return nil
+	}
+
+	anyCloned, failed := c.uncloneMatching(ctx, func(configDir string) bool {
+		return insideDir(configDir, dir)
+	}, force)
+
+	if !anyCloned && !failed {
+		slog.Warn("no repositories are cloned in directory", "directory", dir)
+	}
+
+	return uncloneError(failed)
+}
+
+func (c *Config) uncloneMatching(ctx context.Context, match func(dir string) bool, force bool) (anyCloned, failed bool) {
 	for dir, repo := range c.Repositories.All() {
+		if !match(dir) {
+			continue
+		}
+
 		result := c.newSearchResult(dir, repo)
 
 		cloned, err := afero.DirExists(c.fs, result.Path)
@@ -73,11 +111,12 @@ func (c *Config) UncloneAll(ctx context.Context, force bool) error {
 		}
 	}
 
-	if !anyCloned && !failed {
-		slog.Warn("no repositories are cloned")
-	}
+	return anyCloned, failed
+}
 
-	return uncloneError(failed)
+// Compares whole path segments, so "workshop" is not inside "work"
+func insideDir(configDir, dir string) bool {
+	return configDir == dir || strings.HasPrefix(configDir, dir+"/")
 }
 
 func uncloneError(failed bool) error {

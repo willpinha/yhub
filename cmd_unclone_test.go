@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"log/slog"
 	"path"
 	"strings"
@@ -201,4 +202,111 @@ func TestUncloneCommandAllWithNothingCloned(t *testing.T) {
 
 	require.NoError(t, runUncloneCommand(t, fs, "--all"))
 	assert.Contains(t, logs.String(), "no repositories are cloned")
+}
+
+func TestUncloneCommandDirRejectsArguments(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+
+	err := runUncloneCommand(t, fs, "--dir", "work", "TP")
+	assert.ErrorContains(t, err, "--dir cannot be combined with repository arguments")
+}
+
+func TestUncloneCommandDirRejectsAll(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+
+	err := runUncloneCommand(t, fs, "--all", "--dir", "work")
+	assert.ErrorContains(t, err, "--all cannot be combined with --dir")
+}
+
+func TestUncloneCommandDirRemovesSubtree(t *testing.T) {
+	fs := chdirTempFs(t)
+	logs := captureLogs(t)
+
+	taskPoolPath := "work/dynamic-routing/task-pool"
+	planPath := "personal/static-routing/plan-assignment"
+	cloneCleanRepo(t, taskPoolPath)
+	cloneCleanRepo(t, planPath)
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "work"))
+	assertCloned(t, fs, taskPoolPath, false)
+	assertCloned(t, fs, planPath, true)
+	assert.Equal(t, 1, strings.Count(logs.String(), "repository removed"))
+}
+
+func TestUncloneCommandDirRemovesExactDirectory(t *testing.T) {
+	fs := chdirTempFs(t)
+
+	taskPoolPath := "work/dynamic-routing/task-pool"
+	cloneCleanRepo(t, taskPoolPath)
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "work/dynamic-routing"))
+	assertCloned(t, fs, taskPoolPath, false)
+}
+
+func TestUncloneCommandDirNormalizesPath(t *testing.T) {
+	fs := chdirTempFs(t)
+
+	taskPoolPath := "work/dynamic-routing/task-pool"
+	cloneCleanRepo(t, taskPoolPath)
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "./work/"))
+	assertCloned(t, fs, taskPoolPath, false)
+}
+
+func TestUncloneCommandDirDoesNotMatchSegmentPrefix(t *testing.T) {
+	fs := chdirTempFs(t)
+
+	config := baseConfig()
+	repositoriesOf(config)["workshop"] = []any{repoEntry("owner/shop", "shop")}
+
+	data, err := json.Marshal(config)
+	require.NoError(t, err)
+	require.NoError(t, afero.WriteFile(fs, configPath, data, 0o644))
+
+	taskPoolPath := "work/dynamic-routing/task-pool"
+	shopPath := "workshop/shop"
+	cloneCleanRepo(t, taskPoolPath)
+	cloneCleanRepo(t, shopPath)
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "work"))
+	assertCloned(t, fs, taskPoolPath, false)
+	assertCloned(t, fs, shopPath, true)
+}
+
+func TestUncloneCommandDirKeepsRepositoryWithUnsavedWork(t *testing.T) {
+	fs := chdirTempFs(t)
+
+	taskPoolPath := "work/dynamic-routing/task-pool"
+	cloneCleanRepo(t, taskPoolPath)
+	require.NoError(t, afero.WriteFile(fs, path.Join(taskPoolPath, "new.txt"), []byte("x"), 0o644))
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "work"))
+	assertCloned(t, fs, taskPoolPath, true)
+}
+
+func TestUncloneCommandDirForceRemovesRepositoryWithUnsavedWork(t *testing.T) {
+	fs := chdirTempFs(t)
+
+	taskPoolPath := "work/dynamic-routing/task-pool"
+	cloneCleanRepo(t, taskPoolPath)
+	require.NoError(t, afero.WriteFile(fs, path.Join(taskPoolPath, "new.txt"), []byte("x"), 0o644))
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "work", "--force"))
+	assertCloned(t, fs, taskPoolPath, false)
+}
+
+func TestUncloneCommandDirUnknownDirectory(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	logs := captureLogs(t)
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "unknown"))
+	assert.Contains(t, logs.String(), "no configured directory matches")
+}
+
+func TestUncloneCommandDirWithNothingCloned(t *testing.T) {
+	fs := writeConfig(t, baseConfig())
+	logs := captureLogs(t)
+
+	require.NoError(t, runUncloneCommand(t, fs, "--dir", "work"))
+	assert.Contains(t, logs.String(), "no repositories are cloned in directory")
 }
