@@ -13,13 +13,13 @@ func baseConfig() map[string]any {
 	return map[string]any{
 		"profiles": map[string]any{
 			"personal": map[string]any{
-				"user_name":  "Willian Pinheiro",
-				"user_email": "willpinha@gmail.com",
+				"user_name":  "Jane Doe",
+				"user_email": "jane.doe@example.com",
 				"ssh_key":    "~/.ssh/id_rsa",
 			},
 			"work": map[string]any{
-				"user_name":  "Willian Pinheiro",
-				"user_email": "willpinha@company.com",
+				"user_name":  "Jane Doe",
+				"user_email": "jane.doe@work-example.com",
 				"ssh_key":    "~/.ssh/id_rsa_work",
 			},
 		},
@@ -46,7 +46,7 @@ func baseConfig() map[string]any {
 			},
 			"personal/static-routing": []any{
 				map[string]any{
-					"repository": "willpinha/plan-assignment",
+					"repository": "example-user/plan-assignment",
 					"name":       "plan-assignment",
 				},
 			},
