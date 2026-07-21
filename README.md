@@ -4,8 +4,4 @@
   <img width="220" alt="yHub" src="https://github.com/user-attachments/assets/4312c579-c3f6-4069-94c2-a64edfe4c8bf" />
 </a>
 
-[Documentation]() • [Contributing]() • [License]()
-
-Manage all your Git repositories through a single, centralized repository
-
 </div>
