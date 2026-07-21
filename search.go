@@ -67,13 +67,10 @@ func mentionsRepository(text string, repo Repository) bool {
 	return false
 }
 
-// A mention is a case-insensitive occurrence of the identifier that is not
-// adjacent to word characters (letters, digits, '_' or '-'), so "hello-world"
-// is not mentioned in "hey-hello-world" or "hello-worlds"
+// A mention is an occurrence of the identifier that is not adjacent to word
+// characters (letters, digits, '_' or '-'), so "hello-world" is not mentioned
+// in "hey-hello-world" or "hello-worlds"
 func mentions(text, identifier string) bool {
-	text = strings.ToLower(text)
-	identifier = strings.ToLower(identifier)
-
 	for start := 0; ; start++ {
 		i := strings.Index(text[start:], identifier)
 		if i < 0 {

@@ -45,14 +45,14 @@ func TestSearch(t *testing.T) {
 			want: []string{"task-pool"},
 		},
 		{
-			name: "case-insensitive name",
+			name: "different case name is not mentioned",
 			text: "Clone Task-Pool for me",
-			want: []string{"task-pool"},
+			want: nil,
 		},
 		{
-			name: "case-insensitive alias",
+			name: "different case alias is not mentioned",
 			text: "update tp before deploying",
-			want: []string{"task-pool"},
+			want: nil,
 		},
 		{
 			name: "identifier alone",
