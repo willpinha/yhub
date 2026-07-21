@@ -2,7 +2,7 @@
 	"profiles": {
 		"personal": {
 			"user_name": "Willian Pinheiro",
-			"user_email": "willpinhagmail.com",
+			"user_email": "willpinha@gmail.com",
 			"ssh_key": "~/.ssh/id_rsa"
 		},
 		"work": {
@@ -11,35 +11,34 @@
 			"ssh_key": "~/.ssh/id_rsa_work"
 		}
 	},
-	"platforms": [
-		{
-			"name": "my-own-platform",
-			"url": "https://my-own-platform.com"
+	"platforms": {
+		"my-own-platform": {
+			"host": "my-own-platform.com"
 		}
-	],
+	},
 	"default_profile": "personal",
 	"default_platform": "github",
 	"repositories": {
 		"work/dynamic-routing": [
 			{
-				"owner": "company",
+				"repository": "company/active-task-pool",
 				"name": "active-task-pool",
-				"alias": "ATP",
+				"aliases": ["ATP"],
 				"platform": "my-own-platform",
 				"profile": "work"
 			},
 			{
-				"owner": "company",
+				"repository": "company/task-pool",
 				"name": "task-pool",
-				"alias": "TP",
+				"aliases": ["TP"],
 				"profile": "work"
 			}
 		],
 		"personal/static-routing": [
 			{
-				"owner": "willpinha",
+				"repository": "willpinha/plan-assignment",
 				"name": "plan-assignment",
-				"alias": "PA"
+				"aliases": ["PA"]
 			}
 		]
 	}
