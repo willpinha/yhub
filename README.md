@@ -12,7 +12,7 @@ Manage all your Git repositories through a single, centralized repository
 
 # Installation
 
-Download the archive for your platform from the [latest release](https://github.com/willpinha/yhub/releases/latest), extract it, and place the `yhub` binary somewhere in your `PATH`.
+Download the archive for your platform from the [latest release](https://github.com/willpinha/yhub/releases/latest), extract it, and place the `yhub` binary somewhere in your `PATH`
 
 Alternatively, if you have Go installed:
 
