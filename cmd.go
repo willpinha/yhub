@@ -7,8 +7,9 @@ import (
 
 func MainCommand(fs afero.Fs) *cli.Command {
 	return &cli.Command{
-		Name:  "yhub",
-		Usage: "Manage all your Git repositories through a single, centralized repository",
+		Name:    "yhub",
+		Usage:   "Manage all your Git repositories through a single, centralized repository",
+		Version: Version(),
 		Commands: []*cli.Command{
 			CloneCommand(fs),
 			InCommand(fs),
