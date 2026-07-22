@@ -4,7 +4,7 @@
 
 Manage all your Git repositories through a single, centralized repository
 
-[Motivation]() • [Installation]() • [Get started]()
+[Motivation]() • [Installation]() • [Get started]() • [Contributing]()
 
 </div>
 
@@ -13,3 +13,5 @@ Manage all your Git repositories through a single, centralized repository
 # Installation
 
 # Get started
+
+# Contributing
