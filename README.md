@@ -2,7 +2,9 @@
 
 # yhub
 
-Manage all your Git repositories through a single, centralized repository 
+Manage all your Git repositories through a single, centralized repository
+
+[Motivation]() • [Installation]() • [Get started]()
 
 </div>
 
@@ -11,5 +13,3 @@ Manage all your Git repositories through a single, centralized repository
 # Installation
 
 # Get started
-
-# List of commands
