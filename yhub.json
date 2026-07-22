@@ -1,36 +1,44 @@
 {
-	"repositories_dir": "repos",
-	"profiles": ["personal", "work"],
+	"profiles": {
+		"personal": {
+			"user_name": "Willian Pinheiro",
+			"user_email": "willpinha@gmail.com",
+			"ssh_key": "~/.ssh/id_rsa"
+		},
+		"work": {
+			"user_name": "Willian Pinheiro",
+			"user_email": "willpinha@company.com",
+			"ssh_key": "~/.ssh/id_rsa_work"
+		}
+	},
+	"platforms": {
+		"my-own-platform": {
+			"host": "my-own-platform.com"
+		}
+	},
 	"default_profile": "personal",
 	"default_platform": "github",
-	"custom_platforms": [
-		{
-			"name": "my-own-platform",
-			"url": "https://my-own-platform.com"
-		}
-	],
 	"repositories": {
-		"dynamic-routing": [
+		"work/dynamic-routing": [
 			{
-				"profile": "work",
-				"platform": "github",
-				"repository": "willpinha/active-task-pool",
+				"repository": "company/active-task-pool",
 				"name": "active-task-pool",
-				"alias": "ATP"
+				"aliases": ["ATP"],
+				"platform": "my-own-platform",
+				"profile": "work"
 			},
 			{
-				"platform": "github",
-				"repository": "willpinha/plan-assignment",
-				"name": "plan-assignment",
-				"alias": "PA"
+				"repository": "company/task-pool",
+				"name": "task-pool",
+				"aliases": ["TP"],
+				"profile": "work"
 			}
 		],
-		"static-routing": [
+		"personal/static-routing": [
 			{
-				"platform": "my-own-platform",
-				"repository": "willpinha/my-own-repo",
-				"name": "my-own-repo",
-				"alias": "MOR"
+				"repository": "willpinha/plan-assignment",
+				"name": "plan-assignment",
+				"aliases": ["PA"]
 			}
 		]
 	}
