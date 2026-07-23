@@ -37,14 +37,19 @@ go install github.com/willpinha/yhub@latest
 
 # Documentation
 
-1. [Get started]()
-2. [Configuration files]()
-3. [Integration with AI]()
-4. [Team collaboration]()
-
 ## Get started
 
 ## Configuration files
+
+### The `yhub.json` file
+
+### Profiles
+
+### Repositories
+
+### Platforms
+
+### The `yhub.local.json` file
 
 ## Integration with AI
 
