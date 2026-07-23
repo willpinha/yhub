@@ -22,7 +22,7 @@ If you identified with any of these points, **yhub** might be for you. It's a to
 
 - **Portability:** Your repository organization is the same across different computers
 - **AI Integration:** Instead of saying "Given the repository in `~/code/repos/my-repo`, do this" you say "Given `my-repo`, do this" and the AI ​​will know where to look for it
-- **Team collaboration:** Your team can centralize the organization of all your repositories
+- **Team collaboration:** Your team can centralize the organization of all your repositories across team members
 - **Simplicity:** You don't need to configure your `.gitconfig` file with SSH key mapping logic
 
 # Installation
