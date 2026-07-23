@@ -4,7 +4,7 @@
 
 Manage all your Git repositories through a single, centralized repository
 
-[Motivation]() • [Installation]() • [Get started]() • [Contributing]() • [License]()
+[Motivation]() • [Installation]() • [Documentation]() • [Contributing]() • [License]()
 
 </div>
 
@@ -35,7 +35,15 @@ Alternatively, if you have Go installed:
 go install github.com/willpinha/yhub@latest
 ```
 
-# Get started
+# Documentation
+
+## Get started
+
+## Configuration files
+
+## Integration with AI
+
+## Team collaboration
 
 # Contributing
 
